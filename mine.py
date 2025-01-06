@@ -9,6 +9,7 @@ PROXIES_FILE = "proxy.txt"
 BANDWIDTH_SHARE_URL = "https://api.openloop.so/bandwidth/share"
 MISSIONS_URL = "https://api.openloop.so/missions"
 MISSION_COMPLETE_URL = "https://api.openloop.so/missions/{mission_id}/complete"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 def get_random_quality():
     """Returns a random quality score between 60 and 99."""
@@ -39,7 +40,8 @@ def share_bandwidth(token, proxy):
         try:
             headers = {
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "user-agent": USER_AGENT,
             }
             payload = json.dumps({"quality": quality})
 
@@ -75,7 +77,8 @@ def check_missions_once(tokens, proxies):
                 MISSIONS_URL,
                 headers={
                     "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "user-agent": USER_AGENT,
                 },
                 proxies={"http": proxy, "https": proxy},
                 timeout=10
@@ -95,7 +98,6 @@ def check_missions_once(tokens, proxies):
             print(f"[INFO] {len(available_missions)} available missions found.")
             for mission_id in available_missions:
                 complete_mission(mission_id, token, proxy)
-            break
         except Exception as e:
             print(f"[ERROR] Error fetching missions: {e}")
             continue
@@ -107,7 +109,8 @@ def complete_mission(mission_id, token, proxy):
             MISSION_COMPLETE_URL.format(mission_id=mission_id),
             headers={
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "user-agent": USER_AGENT,
             },
             proxies={"http": proxy, "https": proxy},
             timeout=10
