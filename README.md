@@ -40,7 +40,7 @@ pip install -r requirements.txt
 3. To start Mining Run `python mine.py` make sure your `tokens.txt` file have the access token of the openloop website.
 4. If you have already reg accounts and wanted new access tokens list just add your accounts data in accounts.txt file  `email:pass:solana_private_key` format and run `python get_token.py`
 
-## Donate
+## Support
 
 ```
 # Solana
@@ -52,3 +52,5 @@ TTHJgyn3NC69UXSzEYAvZzBbRRps9vtuZf
 # EVM
 0xc0fa4dcd208c7e45e2a324784526eed0fc4ef8cb
 ```
+
+[![](./assets/telegram.svg "Channel")](https://t.me/glistdao)
