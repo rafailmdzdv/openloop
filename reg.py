@@ -38,10 +38,10 @@ def read_proxies(file_path):
     return cycle(proxies)
 
 
-def save_token(token, file_path):
+def save_token(token, private_key, file_path):
     """Saves token to tokens.txt."""
     with open(file_path, "a") as file:
-        file.write(token + "\n")
+        file.write("{0}:{1}\n".format(token, private_key))
 
 
 def generate_name(email):
@@ -51,7 +51,7 @@ def generate_name(email):
     return f"{base_name}{random_number}"
 
 
-def login_user(email, password, proxy):
+def login_user(email, password, private_key, proxy):
     """Logs in the user to fetch the access token."""
     max_retries = 5
     for attempt in range(max_retries):
@@ -76,7 +76,7 @@ def login_user(email, password, proxy):
             access_token = data.get("data", {}).get("accessToken")
             if access_token:
                 print(f"[SUCCESS] Token fetched for {email}")
-                save_token(access_token, TOKEN_FILE)
+                save_token(access_token, private_key, TOKEN_FILE)
                 return access_token
         except requests.exceptions.RequestException as e:
             print(f"[ERROR] Login attempt failed for {email}: {str(e)}")

@@ -18,8 +18,8 @@ def read_accounts(file_path):
         for line in file:
             line = line.strip()
             if line:
-                email, password = line.split(":", 1)
-                accounts.append({"email": email, "password": password})
+                email, password, private_key = line.split(":", 2)
+                accounts.append({"email": email, "password": password, "private_key": private_key})
     return accounts
 
 def read_proxies(file_path):
@@ -32,12 +32,12 @@ def read_proxies(file_path):
         proxies = [line.strip() for line in file if line.strip()]
     return cycle(proxies)
 
-def save_token(token, file_path):
+def save_token(token, private_key, file_path):
     """
     Saves a token to the tokens.txt file.
     """
     with open(file_path, "a") as file:
-        file.write(token + "\n")
+        file.write("{0}:{1}\n".format(token, private_key))
 
 def get_token_for_account(account, proxy):
     """
@@ -77,7 +77,7 @@ def main():
         print(f"[INFO] Using proxy: {proxy} for account: {account['email']}")
         token = get_token_for_account(account, proxy)
         if token:
-            save_token(token, TOKENS_FILE)
+            save_token(token, account["private_key"], TOKENS_FILE)
         time.sleep(random.uniform(5, 15))
 
 if __name__ == "__main__":

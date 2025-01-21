@@ -4,11 +4,16 @@ import time
 import json
 from itertools import cycle
 
+from solders.keypair import Keypair
+
 TOKENS_FILE = "tokens.txt"
 PROXIES_FILE = "proxy.txt"
 BANDWIDTH_SHARE_URL = "https://api.openloop.so/bandwidth/share"
 MISSIONS_URL = "https://api.openloop.so/missions"
+INFO_URL = "https://api.openloop.so/users/profile"
+LINK_WALLET_URL = "https://api.openloop.so/users/link-wallet"
 MISSION_COMPLETE_URL = "https://api.openloop.so/missions/{mission_id}/complete"
+MESSAGE = "Please sign this message to connect your wallet to OpenLoop and verifying your ownership only."
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 def get_random_quality():
@@ -26,10 +31,10 @@ def get_proxies():
 def get_tokens():
     """Reads tokens from tokens.txt."""
     with open(TOKENS_FILE, "r") as file:
-        tokens = [line.strip() for line in file if line.strip()]
-    if not tokens:
+        tokens_with_privates = [line.strip().split(":") for line in file if line.strip()]
+    if not tokens_with_privates:
         raise ValueError("No tokens found in tokens.txt.")
-    return tokens
+    return tokens_with_privates
 
 def share_bandwidth(token, proxy):
     """Shares bandwidth using the specified token and proxy."""
@@ -70,7 +75,7 @@ def share_bandwidth(token, proxy):
 
 def check_missions_once(tokens, proxies):
     """Checks for available missions for all tokens once."""
-    for token in tokens:
+    for token, _ in tokens:
         proxy = next(proxies)
         try:
             response = requests.get(
@@ -125,6 +130,52 @@ def complete_mission(mission_id, token, proxy):
     except Exception as e:
         print(f"[ERROR] Error completing mission {mission_id}: {e}")
 
+
+def has_address(access_token: str, proxy: str) -> bool:
+    response = requests.get(
+        INFO_URL,
+        headers={
+            "user-agent": USER_AGENT,
+            "authorization": "Bearer {0}".format(access_token),
+        },
+        proxies={"http": proxy, "https": proxy},
+    )
+    if response.status_code != 200:
+        return False
+    json_response = response.json()
+    print("[{0}] wallet address: {1}".format(
+        json_response["data"].get("username"),
+        json_response["data"].get("address"),
+    ))
+    return bool(json_response["data"].get("address"))
+
+
+def link_wallet(
+    access_token: str,
+    private_key: str,
+    proxy: str,
+) -> tuple[bool, str]:
+    keypair = Keypair.from_base58_string(private_key)
+    signature = str(keypair.sign_message(MESSAGE.encode("utf-8")))
+    pub_key = str(keypair.pubkey())
+    response = requests.post(
+        LINK_WALLET_URL,
+        headers={
+            "user-agent": USER_AGENT,
+            "authorization": "Bearer {0}".format(access_token),
+        },
+        json={
+            "message": MESSAGE,
+            "signature": signature,
+            "wallet": pub_key,
+        },
+        proxies={"http": proxy, "https": proxy},
+    )
+    print("Response from API to link wallet -> {0}".format(response.text))
+    if response.status_code == 200:
+        return True, pub_key
+    return False, pub_key
+
 def main():
     print("[INFO] Starting bandwidth sharing...")
 
@@ -132,8 +183,10 @@ def main():
     proxies = get_proxies()
     check_missions_once(tokens, proxies)
     while True:
-        for token in tokens:
+        for token, private_key in tokens:
             proxy = next(proxies)
+            if not has_address(token, proxy):
+                link_wallet(token, private_key, proxy)
             print(f"[INFO] Using proxy: {proxy} for token: {token}")
             share_bandwidth(token, proxy)
         print("[INFO] Waiting for the next interval...")
